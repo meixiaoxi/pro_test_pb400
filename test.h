@@ -6,11 +6,55 @@ typedef  unsigned char		u8;
 typedef	 unsigned short 		u16;		
 typedef 	 unsigned long		u32;
 
-//#define LED_DEBUG	0
+//#define IO_DEBUG	0
+
+#ifdef IO_DEBUG
+#warning "enable IO debug"
+#endif
 
 //adc value
-#define ADC_START_BATTERY_DETECT		100
+#define ADC_CURRENT_LEVEL_1_MIN	2358	//1900
+#define ADC_CURRENT_LEVEL_1_MAX	2978	//2400
 
+#define ADC_CURRENT_LEVEL_2_MIN	744		//600
+#define ADC_CURRENT_LEVEL_2_MAX	1489	//1200
+
+#define ADC_CURRENT_LEVEL_3_MIN	124		//100	
+#define ADC_CURRENT_LEVEL_3_MAX	744		//600
+
+#define ADC_START_BATTERY_DETECT		20
+
+#define ADC_NO_CURRENT					10
+#define ADC_START_BATTERY_CHARGING	20
+#define ADC_CURRENT_BATTERY_DETECT	
+
+//time
+#define 	MAX_TIME_BATTERY_DEAD		4	//  10ms
+
+//60ms   
+#define 	MIN_TIME_TO_BATTERY_DETECT		3
+#define	MAX_TIME_TO_BATTERY_DETECT	8 
+
+//200ms
+#define MIN_TIME_TO_BATTERY_NORMAL_CHARGING	16
+#define MAX_TIME_TO_BATTERY_NORMAL_CHARGING	22
+
+#define MIN_TIME_TO_BATTERY_NORMAL_CHARGING_SPEC	10
+
+//200ms
+#define 	MAX_TIME_DURING_BATTERY_DETECT		25
+#define 	MIN_TIME_DURING_BATTERY_DETECT		18	
+
+//200ms
+#define 	MIN_TIME_DURING_BATTERY_NORMAL_CHARGING	MIN_TIME_DURING_BATTERY_DETECT
+#define 	MAX_TIME_DURING_BATTERY_NORMAL_CHARGING	MAX_TIME_DURING_BATTERY_DETECT
+
+#define    getSysTick()	EA = 0;\
+						NOP();\
+	nowSysTick = gSysTick;\
+	NOP();\
+	EA=1;\
+	
 
 #define 		ClrWdt()		WDTCR = 0xE0
 #define		NOP()		_nop_()

@@ -4,9 +4,68 @@
 
 u8 gTestMode = TEST_AA_BATTERY;
 u32 gSysTick = 0;
-
+u8 stepNow = 1;
+u8 test_pos_now = TEST_CHANNEL_1;
+void LED_ON(u8 num)
+{
+	switch(num)
+	{
+		case 0:
+				LED1_R_ON();break;
+		case 1:
+				LED2_R_ON();break;
+		case 2:
+				LED3_R_ON();break;
+		case 3:
+				LED4_R_ON();break;
+	}
+}
+void LED_OFF(u8 num)
+{
+	switch(num)
+	{
+		case 0:
+				LED1_R_OFF();break;
+		case 1:
+				LED2_R_OFF();break;
+		case 2:
+				LED3_R_OFF();break;
+		case 3:
+				LED4_R_OFF();break;
+	}
+}
 void dumpHandler()
 {
+u8 ii;
+			
+			switch(test_pos_now)
+			{
+				case TEST_CHANNEL_1:
+						OPEN_CHANNEL_1();LED1_R_ON();break;
+				case TEST_CHANNEL_2:
+						OPEN_CHANNEL_2();LED2_R_ON();break;
+				case TEST_CHANNEL_3:
+						OPEN_CHANNEL_3();LED3_R_ON();break;
+				case TEST_CHANNEL_4:
+						OPEN_CHANNEL_4();LED4_R_ON();break;
+				default:
+						dumpHandler();break;
+			}
+
+				return;
+				for(ii=0; ii <= 3; ii++)
+				{
+					if(stepNow & (1<<ii))
+						LED_ON(ii);
+					else
+						LED_OFF(ii);
+				}
+				while(1)
+				{
+					NOP();
+					ClrWdt();
+				}
+
 	LED1_R_ON();
 	LED2_R_ON();
 	LED3_R_ON();
@@ -19,9 +78,10 @@ void dumpHandler()
 	}
 }
 
-#ifdef LED_DEBUG
+#ifdef IO_DEBUG
 void led_test()
 {
+/*
 	LED1_G_ON();
 	LED2_G_ON();
 	LED3_G_ON();
@@ -41,59 +101,310 @@ void led_test()
 	LED2_R_OFF();
 	LED3_R_OFF();
 	LED4_R_OFF();
+	*/
+	P0 = 0x00;
+	P1=	0x00;
+	P2 = 0x00;
+	P3 = 0x00;
+	delay_ms(500);
+	P0 = 0xFF;
+	P1 = 0xFF;
+	P2 = 0xFF;
+	P3 = 0xFF;
+	delay_ms(500);
 }
 #endif
 
+u32 nowSysTick;
+
 void testLoop()
 {
-	u8 test_pos_now = TEST_CHANNEL_1;
+	u8 errorCount = 0,test_current_level;
+	u32 tempSysTick;
+	u16 tCurrentAdc,minCurrent,maxCurrent;
 
 	do{
+
 			switch(test_pos_now)
 			{
 				case TEST_CHANNEL_1:
 						CLOSE_CHANNEL_1();break;
 				case TEST_CHANNEL_2:
-						CLOSE_CHANNEL_1();break;
+						CLOSE_CHANNEL_2();break;
 				case TEST_CHANNEL_3:
-						CLOSE_CHANNEL_1();break;
+						CLOSE_CHANNEL_3();break;
 				case TEST_CHANNEL_4:
-						CLOSE_CHANNEL_1();break;
+						CLOSE_CHANNEL_4();break;
 				default:
-						dumpHandler();break;
+						dumpHandler();
+						goto endpos;
+						break;
 			}
 
-			if(getAverage(test_pos_now) > ADC_START_BATTERY_DETECT)
+
+
+			//wait for ZERO_STATE---->DETECT_STATE
+			//while(getAverage(test_pos_now) > ADC_START_BATTERY_DETECT)
+			//	ClrWdt();
+			getSysTick();
+			tempSysTick = nowSysTick;
+			do
 			{
+				tCurrentAdc = getAverage(test_pos_now);
+				if(tCurrentAdc > ADC_NO_CURRENT)
+				{
+					if(tCurrentAdc > ADC_CURRENT_LEVEL_1_MIN)
+					{
+						stepNow = 4;
+						goto battery_detect;
+					}
+					else
+						break;
+				}
+				getSysTick();
+				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	12)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+				ClrWdt();
 				
+			}while(1);
+
+			getSysTick();
+			tempSysTick = nowSysTick;
+			while(getAverage(test_pos_now) > ADC_NO_CURRENT)
+			{
+				getSysTick();
+				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	MAX_TIME_BATTERY_DEAD)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+				ClrWdt();
+			}
+			stepNow++;
+			//ok now battery state is BATTERY_DETECT
+			//time wait for battery detect
+			tempSysTick = nowSysTick;
+			while(getAverage(test_pos_now) < ADC_START_BATTERY_CHARGING)
+			{
+				getSysTick();
+				if(nowSysTick < tempSysTick  || (nowSysTick-tempSysTick) >=	MAX_TIME_TO_BATTERY_DETECT)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+			}
+			stepNow++;
+			if((nowSysTick-tempSysTick) < MIN_TIME_TO_BATTERY_DETECT)
+			{
+				dumpHandler();
+				goto endpos;
+			}
+			stepNow++;
+			
+			//BATTERY_DETECT_STATE
+		battery_detect:
+			getSysTick();
+			tempSysTick = nowSysTick;
+
+			delay_ms(10);
+			do
+			{
+				tCurrentAdc = getAverage(test_pos_now);
+				if(tCurrentAdc < ADC_CURRENT_LEVEL_1_MIN || tCurrentAdc > ADC_CURRENT_LEVEL_1_MAX)	// CURRENT_LEVEL_1
+				{
+					errorCount++;
+					if(errorCount > 3)
+					{
+						dumpHandler();
+						goto endpos;
+					}
+				}
+
+				getSysTick();
+				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	MAX_TIME_DURING_BATTERY_DETECT)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+				//delay_ms(10);
+				ClrWdt();
+			}while(tCurrentAdc > ADC_CURRENT_LEVEL_1_MIN);
+			stepNow++;
+			if((nowSysTick-tempSysTick) < MIN_TIME_DURING_BATTERY_DETECT)
+			{
+				dumpHandler();
+				goto endpos;
+			}
+			stepNow++;
+			//wait for no current
+			tempSysTick = nowSysTick;
+			do{
+				tCurrentAdc = getAverage(test_pos_now);
+				ClrWdt();
+				getSysTick();
+				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=4)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+			}while(tCurrentAdc > ADC_NO_CURRENT);
+			stepNow++;
+			//ok, now battery state is BATTERY_NORMAL_CHARGING
+			//time wait for battery normal charging
+			for(test_current_level = 1; test_current_level <=4; test_current_level++)
+			{
+			errorCount = 0;
+			switch(test_current_level)
+			{
+				case 1:
+						minCurrent = ADC_CURRENT_LEVEL_3_MIN;
+						maxCurrent = ADC_CURRENT_LEVEL_3_MAX;
+						break;
+				case 2:
+						minCurrent = ADC_CURRENT_LEVEL_2_MIN;
+						maxCurrent = ADC_CURRENT_LEVEL_2_MAX;
+						break;
+				case 3:
+				case 4:
+						minCurrent = ADC_CURRENT_LEVEL_1_MIN;
+						maxCurrent = ADC_CURRENT_LEVEL_1_MAX;
+						break;
+				default:
+						dumpHandler();
+						goto endpos;
+						break;
+			}
+			getSysTick();
+			tempSysTick = nowSysTick;
+			while(getAverage(test_pos_now) < ADC_START_BATTERY_CHARGING)
+			{
+				getSysTick();
+				if(nowSysTick < tempSysTick  || (nowSysTick-tempSysTick) >=	MAX_TIME_TO_BATTERY_NORMAL_CHARGING)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+			}
+			stepNow++;
+			if((nowSysTick-tempSysTick) < MIN_TIME_TO_BATTERY_NORMAL_CHARGING_SPEC)
+			{
+				dumpHandler();
+				goto endpos;
+			}
+			stepNow++;
+			//BATTERY_NORMAL_CHARGING
+			getSysTick();
+			tempSysTick = nowSysTick;
+			delay_ms(10);
+			do{
+				tCurrentAdc = getAverage(test_pos_now);
+				if(tCurrentAdc < minCurrent || tCurrentAdc > maxCurrent)
+				{
+					errorCount++;
+					if(errorCount > 5)
+					{
+						dumpHandler();
+						goto endpos;
+					}
+				}
+				getSysTick();
+				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	MAX_TIME_DURING_BATTERY_NORMAL_CHARGING)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+				ClrWdt();
+			}while(tCurrentAdc > minCurrent);
+
+			if((nowSysTick-tempSysTick) < MIN_TIME_DURING_BATTERY_NORMAL_CHARGING)
+			{
+				dumpHandler();
+				goto endpos;
 			}
 
+			tempSysTick = nowSysTick;
+			do{
+				tCurrentAdc = getAverage(test_pos_now);
+				ClrWdt();
+				getSysTick();
+				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=4)
+				{
+					dumpHandler();
+					goto endpos;
+				}
+			}while(tCurrentAdc > ADC_NO_CURRENT);
+		}
 
-
-
-
-
+			
 			switch(test_pos_now)
 			{
 				case TEST_CHANNEL_1:
-						OPEN_CHANNEL_1();break;
+						OPEN_CHANNEL_1();
+						LED3_G_ON();
+						break;
 				case TEST_CHANNEL_2:
-						OPEN_CHANNEL_1();break;
+						OPEN_CHANNEL_2();
+						LED4_G_ON();
+						break;
 				case TEST_CHANNEL_3:
-						OPEN_CHANNEL_1();break;
+						OPEN_CHANNEL_3();
+						LED1_G_ON();
+						break;
 				case TEST_CHANNEL_4:
-						OPEN_CHANNEL_1();break;
+						OPEN_CHANNEL_4();
+						LED2_G_ON();
+						break;
 				default:
-						dumpHandler();break;
+						dumpHandler();
+						goto endpos;
+						break;
 			}
+			
+		endpos:
 			delay_ms(20);
 			test_pos_now++;
-		}while(test_pos_now<= TEST_CHANNEL_4);
+	}while(test_pos_now<= TEST_CHANNEL_4);
 }
 
 void InitConfig()
 {
-					 //					TEST_MODE_SEL	 S4		    --	   LED3_G
+#ifdef IO_DEBUG
+					//					TEST_MODE_SEL	 S4		    --	   LED3_G
+    P0IO    = 0xFF;         // out     out    out     out        input              out             out          out                 (0:input   1:output)
+    P0OD    = 0x00;        // -      pp     pp      pp            PP                PP               pp            pp                    (0:push-pull   1:open-drain)
+    P0PU    = 0x00;         // -      on      on       on           off                off             off           off                  (0:disable      1:enable)               
+    P0        = 0x01;	        // -      -       -         -              0              0                0               0
+    P03DB   = 0x00;       // 0       0      0       0               0              0                 0              0
+    P0FSR   = 0x00;       // 0      0      0       0              0              0                   0            0
+
+                                    //-        V3_CUR_ADC      V2_CUR_ADC   V1_CUR_ADC  V4_CUR_ADC     --             --          --
+    P1IO    = 0xFF;         // out         input                       input                input               input         out          out            out
+    P1OD    = 0x00;        // pp        PP           PP           pp             PP             PP             PP                 pp
+    P1PU    = 0x80;        // on        off          off           off            off             off            off                 off
+    P1	  = 0x00;        // 00000000
+    P12DB   = 0x00;       // 00000000
+    P1FSRH  = 0x00;      // 00         10                        10                       10
+     P1FSRL  = 0x00;	 //                                                                                       010              00            00                 0 
+    
+                                    //-    -  	S3   		 S2        S1       -         -      -
+    P2IO    = 0xFF;         //-   out      out          	out         out    out     out     out
+    P2OD    = 0x00;         // -   PP      PP              PP             PP      PP      pp     pp
+    P2PU    = 0x00;         // -    on     off              off             off     on      on     on
+    P2	  = 0x00;		    // -      -      1      1      -      -      -      -
+    P2FSR   = 0x00;	   //             00000000
+
+                                     //led4_G    --    led1_G    led2_G    led1_R    led2_R    led3_R   led4_R
+    P3IO    = 0xFF;         // out         out      out            out         out           out        out         out
+    P3OD    = 0x00;        // PP         PP      PP         PP       PP         PP       PP       PP
+    P3PU    = 0x00;         // off       off      off        off       off       off       off       off
+    P3	   = 0xFF;	//00000000
+    P3FSR   = 0x00;		  // 0        0         0          0         0         0          0        0		
+
+#else
+					//					TEST_MODE_SEL	 S4		    --	   LED3_G
     P0IO    = 0xF7;         // out     out    out     out        input              out             out          out                 (0:input   1:output)
     P0OD    = 0x00;        // -      pp     pp      pp            PP                PP               pp            pp                    (0:push-pull   1:open-drain)
     P0PU    = 0x00;         // -      on      on       on           off                off             off           off                  (0:disable      1:enable)               
@@ -123,6 +434,7 @@ void InitConfig()
     P3PU    = 0x00;         // off       off      off        off       off       off       off       off
     P3	   = 0xFF;	//00000000
     P3FSR   = 0x00;		  // 0        0         0          0         0         0          0        0		
+  #endif
 }
 
 void main()
@@ -160,7 +472,11 @@ void main()
 
 	IE |= (1<<7);    //global interrupt
 
-	#ifdef LED_DEBUG
+
+	LED1_G_ON();delay_ms(500);
+	LED1_G_OFF();
+
+	#ifdef IO_DEBUG
 	led_test();
 	#endif
 
@@ -174,6 +490,12 @@ void main()
 
 	
 	testLoop();
+
+	while(1)
+	{
+		ClrWdt();
+		NOP();
+	}
 	
 }
 
