@@ -116,12 +116,46 @@ void led_test()
 #endif
 
 u32 nowSysTick;
-
+	u16	gAdc_Current_Level_1_Min;
+	u16	gAdc_Current_Level_1_Max;
+	u16	gAdc_Current_Level_2_Min;
+	u16	gAdc_Current_Level_2_Max;
+	u16	gAdc_Current_Level_3_Min;
+	u16	gAdc_Current_Level_3_Max;
+	u8	gAdc_Start_Battery_Charging;
 void testLoop()
 {
 	u8 errorCount = 0,test_current_level;
 	u32 tempSysTick;
 	u16 tCurrentAdc,minCurrent,maxCurrent;
+
+	
+
+	if(gTestMode == TEST_AAA_BATTERY)
+	{
+		gAdc_Current_Level_1_Min = ADC_CURRENT_LEVEL_1_MIN_AAA;
+		gAdc_Current_Level_1_Max = ADC_CURRENT_LEVEL_1_MAX_AAA;
+		gAdc_Current_Level_2_Min = ADC_CURRENT_LEVEL_2_MIN_AAA;
+		gAdc_Current_Level_2_Max = ADC_CURRENT_LEVEL_2_MAX_AAA;
+		gAdc_Current_Level_3_Min = ADC_CURRENT_LEVEL_3_MIN_AAA;
+		gAdc_Current_Level_3_Max = ADC_CURRENT_LEVEL_3_MAX_AAA;
+		gAdc_Start_Battery_Charging = ADC_START_BATTERY_CHARGING;	
+	}
+	else
+	{
+		gAdc_Current_Level_1_Min = ADC_CURRENT_LEVEL_1_MIN;
+		gAdc_Current_Level_1_Max = ADC_CURRENT_LEVEL_1_MAX;
+		gAdc_Current_Level_2_Min = ADC_CURRENT_LEVEL_2_MIN;
+		gAdc_Current_Level_2_Max = ADC_CURRENT_LEVEL_2_MAX;
+		gAdc_Current_Level_3_Min = ADC_CURRENT_LEVEL_3_MIN;
+		gAdc_Current_Level_3_Max = ADC_CURRENT_LEVEL_3_MAX;
+		gAdc_Start_Battery_Charging = ADC_START_BATTERY_CHARGING;
+	}
+	
+	
+	
+
+
 
 	do{
 
@@ -153,7 +187,7 @@ void testLoop()
 				tCurrentAdc = getAverage(test_pos_now);
 				if(tCurrentAdc > ADC_NO_CURRENT)
 				{
-					if(tCurrentAdc > ADC_CURRENT_LEVEL_1_MIN)
+					if(tCurrentAdc > gAdc_Current_Level_1_Min)
 					{
 						stepNow = 4;
 						goto battery_detect;
@@ -187,7 +221,7 @@ void testLoop()
 			//ok now battery state is BATTERY_DETECT
 			//time wait for battery detect
 			tempSysTick = nowSysTick;
-			while(getAverage(test_pos_now) < ADC_START_BATTERY_CHARGING)
+			while(getAverage(test_pos_now) < gAdc_Start_Battery_Charging)
 			{
 				getSysTick();
 				if(nowSysTick < tempSysTick  || (nowSysTick-tempSysTick) >=	MAX_TIME_TO_BATTERY_DETECT)
@@ -213,7 +247,7 @@ void testLoop()
 			do
 			{
 				tCurrentAdc = getAverage(test_pos_now);
-				if(tCurrentAdc < ADC_CURRENT_LEVEL_1_MIN || tCurrentAdc > ADC_CURRENT_LEVEL_1_MAX)	// CURRENT_LEVEL_1
+				if(tCurrentAdc < gAdc_Current_Level_1_Min|| tCurrentAdc > gAdc_Current_Level_1_Max)	// CURRENT_LEVEL_1
 				{
 					errorCount++;
 					if(errorCount > 3)
@@ -231,7 +265,7 @@ void testLoop()
 				}
 				//delay_ms(10);
 				ClrWdt();
-			}while(tCurrentAdc > ADC_CURRENT_LEVEL_1_MIN);
+			}while(tCurrentAdc > gAdc_Current_Level_1_Min);
 			stepNow++;
 			if((nowSysTick-tempSysTick) < MIN_TIME_DURING_BATTERY_DETECT)
 			{
@@ -260,17 +294,17 @@ void testLoop()
 			switch(test_current_level)
 			{
 				case 1:
-						minCurrent = ADC_CURRENT_LEVEL_3_MIN;
-						maxCurrent = ADC_CURRENT_LEVEL_3_MAX;
+						minCurrent = gAdc_Current_Level_3_Min;
+						maxCurrent = gAdc_Current_Level_3_Max;
 						break;
 				case 2:
-						minCurrent = ADC_CURRENT_LEVEL_2_MIN;
-						maxCurrent = ADC_CURRENT_LEVEL_2_MAX;
+						minCurrent = gAdc_Current_Level_2_Min;
+						maxCurrent = gAdc_Current_Level_2_Max;
 						break;
 				case 3:
 				case 4:
-						minCurrent = ADC_CURRENT_LEVEL_1_MIN;
-						maxCurrent = ADC_CURRENT_LEVEL_1_MAX;
+						minCurrent = gAdc_Current_Level_1_Min;
+						maxCurrent = gAdc_Current_Level_1_Max;
 						break;
 				default:
 						dumpHandler();
@@ -279,7 +313,7 @@ void testLoop()
 			}
 			getSysTick();
 			tempSysTick = nowSysTick;
-			while(getAverage(test_pos_now) < ADC_START_BATTERY_CHARGING)
+			while(getAverage(test_pos_now) < gAdc_Start_Battery_Charging)
 			{
 				getSysTick();
 				if(nowSysTick < tempSysTick  || (nowSysTick-tempSysTick) >=	MAX_TIME_TO_BATTERY_NORMAL_CHARGING)
@@ -486,7 +520,9 @@ void main()
 		gTestMode = TEST_AA_BATTERY;
 	}
 	else
+	{
 		gTestMode = TEST_AAA_BATTERY;
+	}
 
 	
 	testLoop();
