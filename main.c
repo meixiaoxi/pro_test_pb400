@@ -5,7 +5,7 @@
 u8 gTestMode = TEST_AA_BATTERY;
 u32 gSysTick = 0;
 u8 stepNow = 1;
-u8 test_pos_now = TEST_CHANNEL_1;
+u8 test_pos_now = TEST_CHANNEL_1,isError = 0;
 void LED_ON(u8 num)
 {
 	switch(num)
@@ -37,7 +37,7 @@ void LED_OFF(u8 num)
 void dumpHandler()
 {
 u8 ii;
-			
+		isError = 1;
 			switch(test_pos_now)
 			{
 				case TEST_CHANNEL_1:
@@ -129,8 +129,8 @@ void testLoop()
 	u32 tempSysTick;
 	u16 tCurrentAdc,minCurrent,maxCurrent;
 
-	
-
+	//gTestMode = TEST_AA_BATTERY;
+Start:
 	if(gTestMode == TEST_AAA_BATTERY)
 	{
 		gAdc_Current_Level_1_Min = ADC_CURRENT_LEVEL_1_MIN_AAA;
@@ -195,12 +195,14 @@ void testLoop()
 					else
 						break;
 				}
+				#if 1
 				getSysTick();
 				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	12)
 				{
 					dumpHandler();
 					goto endpos;
 				}
+				#endif
 				ClrWdt();
 				
 			}while(1);
@@ -401,6 +403,31 @@ void testLoop()
 			delay_ms(20);
 			test_pos_now++;
 	}while(test_pos_now<= TEST_CHANNEL_4);
+
+	if(isError)
+	{
+		while(1)
+		{
+			NOP();
+			ClrWdt();
+		}
+	}
+getSysTick();
+tempSysTick = nowSysTick;
+while(GET_BATTERY_STATUS() == gTestMode)
+{
+	ClrWdt();
+	getSysTick();
+	if((nowSysTick-tempSysTick) >= 200)
+		LED_ALL_OFF();
+	
+}
+LED_ALL_OFF();
+gTestMode = GET_BATTERY_STATUS();
+
+	errorCount = 0;
+	test_pos_now = TEST_CHANNEL_1;
+	goto Start;
 }
 
 void InitConfig()

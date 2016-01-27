@@ -100,6 +100,8 @@ typedef 	 unsigned long		u32;
 #define LED4_G_OFF()	P37 = 1
 
 
+#define LED_ALL_OFF()	LED1_G_OFF(),LED2_G_OFF(),LED3_G_OFF(),LED4_G_OFF()
+
 #define CLOSE_CHANNEL_1()	P23 = 1
 #define OPEN_CHANNEL_1()	P23 = 0
 
