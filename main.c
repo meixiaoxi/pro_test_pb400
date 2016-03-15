@@ -37,6 +37,7 @@ void LED_OFF(u8 num)
 void dumpHandler()
 {
 u8 ii;
+
 		isError = 1;
 			switch(test_pos_now)
 			{
@@ -53,6 +54,7 @@ u8 ii;
 			}
 
 				return;
+
 				for(ii=0; ii <= 3; ii++)
 				{
 					if(stepNow & (1<<ii))
@@ -154,7 +156,7 @@ Start:
 	
 	
 	
-
+	//test_pos_now = TEST_CHANNEL_2;
 
 
 	do{
@@ -423,6 +425,18 @@ while(GET_BATTERY_STATUS() == gTestMode)
 	
 }
 LED_ALL_OFF();
+
+
+//CLOSE_CHANNEL_1();
+//CLOSE_CHANNEL_2();
+//CLOSE_CHANNEL_3();
+//CLOSE_CHANNEL_4();
+while(1)
+		{
+			NOP();
+			ClrWdt();
+		}
+
 gTestMode = GET_BATTERY_STATUS();
 
 	errorCount = 0;
@@ -534,8 +548,8 @@ void main()
 	IE |= (1<<7);    //global interrupt
 
 
-	LED1_G_ON();delay_ms(500);
-	LED1_G_OFF();
+//	LED1_G_ON();delay_ms(500);
+//	LED1_G_OFF();
 
 	#ifdef IO_DEBUG
 	led_test();

@@ -14,7 +14,7 @@ typedef 	 unsigned long		u32;
 
 //adc value
 #define ADC_CURRENT_LEVEL_1_MIN	2358	//1900
-#define ADC_CURRENT_LEVEL_1_MAX	2978	//2400
+#define ADC_CURRENT_LEVEL_1_MAX	3103	//2500
 
 #define ADC_CURRENT_LEVEL_2_MIN	744		//600
 #define ADC_CURRENT_LEVEL_2_MAX	1489	//1200
