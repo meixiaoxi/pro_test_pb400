@@ -12,6 +12,9 @@ typedef 	 unsigned long		u32;
 #warning "enable IO debug"
 #endif
 
+
+#define ENABLE_FAST_TEST_MODE
+
 //adc value
 #define ADC_CURRENT_LEVEL_1_MIN	2358	//1900
 #define ADC_CURRENT_LEVEL_1_MAX	3103	//2500

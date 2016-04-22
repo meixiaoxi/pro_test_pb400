@@ -6,6 +6,10 @@ u8 gTestMode = TEST_AA_BATTERY;
 u32 gSysTick = 0;
 u8 stepNow = 1;
 u8 test_pos_now = TEST_CHANNEL_1,isError = 0;
+
+
+u8 gVin5vTestOk = 0;
+
 void LED_ON(u8 num)
 {
 	switch(num)
@@ -374,6 +378,22 @@ Start:
 					goto endpos;
 				}
 			}while(tCurrentAdc > ADC_NO_CURRENT);
+
+			#ifdef ENABLE_FAST_TEST_MODE
+			if(test_current_level == 2)
+			{
+				if(gTestMode == TEST_AA_BATTERY)
+				{
+					if(test_pos_now != TEST_CHANNEL_1)
+						break;
+				}
+				else if(gTestMode == TEST_AAA_BATTERY)
+				{
+					if(test_pos_now != TEST_CHANNEL_1)
+						break;
+				}
+				#endif
+			}
 		}
 
 			
