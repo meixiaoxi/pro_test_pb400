@@ -203,7 +203,7 @@ Start:
 				}
 				#if 1
 				getSysTick();
-				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	12)
+				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	20)
 				{
 					dumpHandler();
 					goto endpos;
@@ -251,14 +251,14 @@ Start:
 			getSysTick();
 			tempSysTick = nowSysTick;
 
-			delay_ms(10);
+			delay_ms(40);
 			do
 			{
 				tCurrentAdc = getAverage(test_pos_now);
 				if(tCurrentAdc < gAdc_Current_Level_1_Min|| tCurrentAdc > gAdc_Current_Level_1_Max)	// CURRENT_LEVEL_1
 				{
 					errorCount++;
-					if(errorCount > 3)
+					if(errorCount > 5)
 					{
 						dumpHandler();
 						goto endpos;
@@ -271,7 +271,7 @@ Start:
 					dumpHandler();
 					goto endpos;
 				}
-				//delay_ms(10);
+				delay_ms(10);
 				ClrWdt();
 			}while(tCurrentAdc > gAdc_Current_Level_1_Min);
 			stepNow++;
@@ -340,7 +340,7 @@ Start:
 			//BATTERY_NORMAL_CHARGING
 			getSysTick();
 			tempSysTick = nowSysTick;
-			delay_ms(10);
+			delay_ms(40);
 			do{
 				tCurrentAdc = getAverage(test_pos_now);
 				if(tCurrentAdc < minCurrent || tCurrentAdc > maxCurrent)
@@ -358,6 +358,7 @@ Start:
 					dumpHandler();
 					goto endpos;
 				}
+				delay_ms(10);
 				ClrWdt();
 			}while(tCurrentAdc > minCurrent);
 
@@ -424,6 +425,7 @@ Start:
 		endpos:
 			delay_ms(20);
 			test_pos_now++;
+			errorCount = 0;
 	}while(test_pos_now<= TEST_CHANNEL_4);
 
 	if(isError)
