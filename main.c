@@ -129,6 +129,9 @@ u32 nowSysTick;
 	u16	gAdc_Current_Level_3_Min;
 	u16	gAdc_Current_Level_3_Max;
 	u8	gAdc_Start_Battery_Charging;
+
+#define NEW_401
+	
 void testLoop()
 {
 	u8 errorCount = 0,test_current_level;
@@ -198,9 +201,12 @@ Start:
 						stepNow = 4;
 						goto battery_detect;
 					}
+					#ifndef NEW_401
 					else
 						break;
+					#endif
 				}
+
 				#if 1
 				getSysTick();
 				if(nowSysTick < tempSysTick || (nowSysTick-tempSysTick) >=	20)
